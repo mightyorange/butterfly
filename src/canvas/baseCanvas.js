@@ -2635,6 +2635,7 @@ class BaseCanvas extends Canvas {
           labelUpdateInterval: link.labelUpdateInterval === undefined ? _.get(this, 'theme.edge.labelUpdateInterval') : link.labelUpdateInterval,
           isExpandWidth: this.theme.edge.isExpandWidth,
           defaultAnimate: this.theme.edge.defaultAnimate,
+          options: link,
           _global: this.global,
           _on: this.on.bind(this),
           _emit: this.emit.bind(this),
