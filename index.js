@@ -13,6 +13,7 @@ import Minimap from './src/utils/minimap';
 import Tips from './src/utils/toolTip';
 import Layout from './src/utils/layout/layout';
 import Arrow from './src/utils/arrow';
+import Hierarchy from './src/utils/layout/hierarchy';
 import './src/index.less';
 
 let Butterfly = {
@@ -26,7 +27,8 @@ let Butterfly = {
   Minimap,
   Tips,
   Layout,
-  Arrow
+  Arrow,
+  Hierarchy
 };
 
 window.Butterfly = Butterfly;
