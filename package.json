@@ -1,5 +1,5 @@
 {
-  "name": "butterfly-dag",
+  "name": "@mightyorange/butterfly",
   "version": "4.0.31",
   "description": "一个基于数据驱动的节点式编排组件库，让你有方便快捷定制可视化流程图表",
   "main": "dist/index.js",
@@ -11,11 +11,12 @@
     "release": "rollup -c && npm publish",
     "coverage": "nyc npm run test",
     "compile": "./node_modules/webpack/bin/webpack.js",
-    "build": "webpack && rollup -c && cp -r static ./es/ && cp -r static ./dist"
+    "build": "webpack && rollup -c && cp -r static ./es/ && cp -r static ./dist",
+    "prepare" : "npm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/alibaba/butterfly.git"
+    "url": "git+ssh://git@github.com/mightyorange/butterfly"
   },
   "devDependencies": {
     "@babel/core": "~7.14.0",
@@ -71,7 +72,13 @@
   "author": "noonnightstorm",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/alibaba/butterfly/issues"
+    "url": "https://github.com/mightyorange/butterfly/issues"
   },
-  "homepage": "https://github.com/alibaba/butterfly#readme"
+  "homepage": "https://github.com/mightyorange/butterfly#readme",
+  "publishConfig": {
+    "registry":"https://npm.pkg.github.com"
+  },
+  "files": [
+    "dist"
+  ]
 }
