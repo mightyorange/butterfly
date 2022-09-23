@@ -1,3 +1,8 @@
+## ✨ 如何使用
+* clone到本地，安装好依赖
+* 直接跑 npm run release 把包发布到npm
+* 其它项目更新依赖的版本号即可
+
 <p align="center">
   <a href="http://noonnightstorm.github.io">
     <!-- <img width="900" src="http://img.alicdn.com/tfs/TB1TlngGFYqK1RjSZLeXXbXppXa-844-474.png"> -->
