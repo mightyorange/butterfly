@@ -23,8 +23,7 @@ import GuidelineService from '../utils/guidelineService';
 import Minimap from '../utils/minimap';
 // 线段动画
 import LinkAnimateUtil from '../utils/link/link_animate';
-
-
+import Hammer from 'hammerjs';
 import './baseCanvas.less';
 
 class BaseCanvas extends Canvas {
@@ -756,10 +755,11 @@ class BaseCanvas extends Canvas {
     };
 
     const mouseMoveEvent = (event) => {
-      const LEFT_BUTTON = 0;
-      if (event.button !== LEFT_BUTTON) {
+      if (event.buttons !== 1) {
+        // 如果是鼠标移动事件，按下了左键才care
+        // 我有做hammer pan和wheel事件的模拟，也会模拟buttons-1传进来
         return;
-      }
+      };
       if (this._dragType) {
         const canvasX = this._coordinateService._terminal2canvas('x', event.clientX);
         const canvasY = this._coordinateService._terminal2canvas('y', event.clientY);
@@ -1532,7 +1532,56 @@ class BaseCanvas extends Canvas {
       }
       _clearDraging();
     }
+    this.mouseMoveEvent=mouseMoveEvent;
+    this.mouseEndEvent=mouseEndEvent;
+    this.mouseLeaveEvent=mouseLeaveEvent;
+    this.mouseDownEvent=mouseDownEvent;
+    const hammertime = new Hammer(this.root);
+    hammertime.get('pinch').set({ enable: true });
+    hammertime.on('panmove', (ev) => {
+      console.log('panmove', ev);
+      this.mouseMoveEvent({
+        buttons: 1,
+        clientX: ev.center.x,
+        clientY: ev.center.y,
+        target: ev.target,
+        pointerType: 'touch'
+      });
+    })
+    hammertime.on('panstart pinchstart', ev=>{
+      this.mouseDownEvent({
+        button:0,
+        clientX: ev.center.x,
+        clientY: ev.center.y
+      })
+      if (ev.type === 'pinchstart') {
+        ev.scale = lasthammerscale * ev.scale;
+        this._zoomCb(ev)
+      }
+    });
 
+    hammertime.on('panend pancancel pinchend pinchcancel', ev=>{
+      this.mouseEndEvent({button:0}); // 结束mousemove
+    })
+    hammertime.on('pancancel  pinchcancel', ev=>{
+      this.mouseLeaveEvent();
+    })
+    let lasthammerscale = 1;
+    hammertime.on('pinchend pinchcancel', ev=>{
+      lasthammerscale = lasthammerscale * ev.scale;
+      if (lasthammerscale < 0.25) {
+        lasthammerscale = 0.25;
+        return;
+      } if (lasthammerscale > 5) {
+        lasthammerscale = 5;
+        return;
+      }
+    });
+    hammertime.on('pinchmove', (ev) => {
+      console.log('pinch', ev);
+      ev.scale = lasthammerscale * ev.scale;
+      this._zoomCb(ev)
+    });
     this.root.addEventListener('mousedown', mouseDownEvent);
     this.root.addEventListener('mousemove', mouseMoveEvent);
     // this.root.addEventListener('mouseleave', mouseEndEvent);
@@ -3779,12 +3828,20 @@ class BaseCanvas extends Canvas {
     }
     if (!this._zoomCb) {
       this._zoomCb = (event) => {
-        event.preventDefault();
-        const deltaY = event.deltaY;
-        if (this._zoomDirection) {
-          this._zoomData -= deltaY * this.theme.zoomGap;
+        if (event.scale===undefined) {
+          // wheel事件调用本函数，此时没有scale属性。
+          // hammer pinch也会调用本函数，并传来scale参数。
+          event.preventDefault();
+          const deltaY = event.deltaY;
+          if (this._zoomDirection) {
+            this._zoomData -= deltaY * this.theme.zoomGap;
+          } else {
+            this._zoomData += deltaY * this.theme.zoomGap;
+          }
         } else {
-          this._zoomData += deltaY * this.theme.zoomGap;
+          this._zoomData = event.scale;
+          event.clientX = event.center.x;
+          event.clientY = event.center.y
         }
 
         if (this._zoomData < 0.25) {
@@ -3818,13 +3875,42 @@ class BaseCanvas extends Canvas {
           zoom: this._zoomData
         });
       };
+    };
+    let accumulatedClient = {};
+    const wheelWrapper = e=>{
+      if (e.ctrlKey === true) {
+        // wheel事件+键盘ctrl键是缩放，同时，windowspc上触控板双指Pinch也会将ctrlKey置为true
+        this._zoomCb(e)
+      } else {
+        // 是平移，模拟成标准鼠标事件
+        if (accumulatedClient.x === undefined || (accumulatedClient.orgx !== e.clientX || accumulatedClient.orgy !== e.clientY)) {
+          // 整个wheel过程中，clientX和clientY都不会变
+          // 一旦变了，那就是新一轮wheel
+          this.mouseEndEvent({button:0}); // 结束mousemove
+          accumulatedClient.x = 0;
+          accumulatedClient.y = 0;
+          accumulatedClient.orgx = e.clientX;
+          accumulatedClient.orgy = e.clientY;
+        } else {
+          accumulatedClient.x = accumulatedClient.x + e.deltaX;
+          accumulatedClient.y = accumulatedClient.y + e.deltaY;
+        }
+        const event = {
+          buttons: 1,
+          clientX: accumulatedClient.x,
+          clientY: accumulatedClient.y,
+          target: e.target,
+          pointerType: 'wheel'
+        }
+        this._dragType = 'canvas:drag';
+        this.mouseMoveEvent(event)
+      }
     }
-
     if (flat) {
       // 双指Mac下缩放正常，Window鼠标滑轮方向相反
-      this.root.addEventListener('wheel', this._zoomCb);
+      this.root.addEventListener('wheel', wheelWrapper);
     } else {
-      this.root.removeEventListener('wheel', this._zoomCb);
+      this.root.removeEventListener('wheel', wheelWrapper);
     }
   }
   setMoveable(flat) {
